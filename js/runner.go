@@ -54,6 +54,9 @@ type Runner struct {
 	BaseDialer net.Dialer
 	Resolver   *dnscache.Resolver
 	RPSLimit   *rate.Limiter
+
+	// Value returned from setup(), if anything.
+	setupData goja.Value
 }
 
 func New(src *lib.SourceData, fs afero.Fs) (*Runner, error) {
@@ -175,6 +178,20 @@ func (r *Runner) newVU() (*VU, error) {
 	return vu, nil
 }
 
+func (r *Runner) Setup() (err error) {
+	if setup := r.Bundle.Setup; setup != nil {
+		r.setupData, err = setup(goja.Undefined())
+	}
+	return
+}
+
+func (r *Runner) Teardown() (err error) {
+	if teardown := r.Bundle.Teardown; teardown != nil {
+		_, err = teardown(goja.Undefined(), r.setupData)
+	}
+	return
+}
+
 func (r *Runner) GetDefaultGroup() *lib.Group {
 	return r.defaultGroup
 }
@@ -262,7 +279,7 @@ func (u *VU) RunOnce(ctx context.Context) ([]stats.Sample, error) {
 	u.Iteration++
 
 	startTime := time.Now()
-	_, err = u.Default(goja.Undefined())
+	_, err = u.Default(goja.Undefined(), u.Runner.setupData)
 
 	t := time.Now()
 	tags := map[string]string{
