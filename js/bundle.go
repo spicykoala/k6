@@ -134,7 +134,6 @@ func NewBundle(src *lib.SourceData, fs afero.Fs) (*Bundle, error) {
 			if _, ok := goja.AssertFunction(v); !ok {
 				return nil, errors.New("exported 'teardown' must be a function")
 			}
-		default:
 		}
 	}
 
