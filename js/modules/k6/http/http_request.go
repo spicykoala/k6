@@ -31,6 +31,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	neturl "net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -43,6 +44,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	null "gopkg.in/guregu/null.v3"
 )
+
+var byteType = reflect.TypeOf([]byte(nil))
 
 type HTTPRequest struct {
 	Method  string
@@ -102,17 +105,21 @@ func (h *HTTP) request(ctx context.Context, rt *goja.Runtime, state *common.Stat
 	var contentType string
 	if len(args) > 0 && !goja.IsUndefined(args[0]) && !goja.IsNull(args[0]) {
 		var data map[string]goja.Value
-		if rt.ExportTo(args[0], &data) == nil {
-			bodyQuery := make(neturl.Values, len(data))
-			for k, v := range data {
-				if v != goja.Undefined() {
-					bodyQuery.Set(k, v.String())
-				}
-			}
-			bodyBuf = bytes.NewBufferString(bodyQuery.Encode())
-			contentType = "application/x-www-form-urlencoded"
+		if args[0].ExportType() == byteType {
+			bodyBuf = bytes.NewBuffer(args[0].Export().([]byte))
 		} else {
-			bodyBuf = bytes.NewBufferString(args[0].String())
+			if rt.ExportTo(args[0], &data) == nil {
+				bodyQuery := make(neturl.Values, len(data))
+				for k, v := range data {
+					if v != goja.Undefined() {
+						bodyQuery.Set(k, v.String())
+					}
+				}
+				bodyBuf = bytes.NewBufferString(bodyQuery.Encode())
+				contentType = "application/x-www-form-urlencoded"
+			} else {
+				bodyBuf = bytes.NewBufferString(args[0].String())
+			}
 		}
 	}
 
