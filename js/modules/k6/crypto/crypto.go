@@ -133,7 +133,7 @@ func (*Crypto) CreateHash(ctx context.Context, algorithm string) *Hasher {
 }
 
 func (hasher *Hasher) Update(input []byte) {
-	_, err := hasher.hash.Write([]byte(input))
+	_, err := hasher.hash.Write(input)
 	if err != nil {
 		common.Throw(common.GetRuntime(hasher.ctx), err)
 	}
